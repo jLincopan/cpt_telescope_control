@@ -40,19 +40,18 @@ def encode_command(msg):
 
 def decode_command(msg):
     response_string = msg.hex()
-
-    H1 = int(response_string[2:4], 16)
-    H2 = int(response_string[4:6], 16)
-    H3 = int(response_string[6:8], 16)
-    H4 = int(response_string[8:10], 16)
-    V1 = int(response_string[12:14], 16)
-    V2 = int(response_string[14:16], 16)
-    V3 = int(response_string[16:18], 16)
-    V4 = int(response_string[18:20], 16)
+    H1 = int(response_string[3:4], 16)
+    H2 = int(response_string[5:6], 16)
+    H3 = int(response_string[7:8], 16)
+    H4 = int(response_string[9:10], 16)
+    V1 = int(response_string[13:14], 16)
+    V2 = int(response_string[15:16], 16)
+    V3 = int(response_string[17:18], 16)
+    V4 = int(response_string[19:20], 16)
 
     # Calculate angles for Az/El
-    az = round(H1 * 100 + H2 * 10 + H3 + H4 / 10 -360, 1)
-    el = round(V1 * 100 + V2 * 10 + V3 + V4 / 10 -360, 1)
-    
+    az = round((H1 * 100) + (H2 * 10) + H3 + (H4 / 10) -360, 1)
+    el = round((V1 * 100) + (V2 * 10) + V3 + (V4 / 10) -360, 1)
+
     return (az, el)
 
