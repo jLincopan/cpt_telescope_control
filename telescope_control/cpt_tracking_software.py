@@ -38,6 +38,10 @@ def get_altz_coords(ra, dec):
     altaz = radec.transform_to(altaz_frame)
     alt = altaz.alt.deg
     az = altaz.az.deg
+
+    if az>200:
+        az = 360 -az
+        alt = 180 -alt
     return alt, az
 
 

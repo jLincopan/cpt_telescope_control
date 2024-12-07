@@ -71,7 +71,7 @@ def send_messages(sock):
             print("Moving to park position")
 
         if message[0] == "service":
-            msg = spid.encode_command(spid.build_command(90,180))
+            msg = spid.encode_command(spid.build_command(0,0))
             print("Moving to service position")
 
         if message[0] == "restart":
@@ -84,7 +84,7 @@ def send_messages(sock):
                 if len(message) < 4:
                     print("Elevation and Azimuth movement needs the 2 position arguments")
                 else:
-                    msg = spid.encode_command(spid.build_command(int(message[3]),int(message[2])))
+                    msg = spid.encode_command(spid.build_command(str_to_f(message[3]),str_to_f(message[2])))
                     stop_pos = message[2], message[3]
                     print(f"Moving to El - Az {message[2]} - {message[3]}")
                     movement_monitor = True
@@ -93,13 +93,13 @@ def send_messages(sock):
                 if len(message) < 3:
                     print("Elevation movement missing argument")
                 else:
-                    msg = spid.encode_command(spid.build_command(int(position[0]), int(message[2])))
+                    msg = spid.encode_command(spid.build_command(str_to_f(position[0]), str_to_f(message[2])))
                     print(f"Moving to El {message[2]}")
             elif message[1] == "az":
                 if len(message) < 3:
                     print("Azimuth movement missing argument")
                 else:
-                    msg = spid.encode_command(spid.build_command(int(message[2]), int(position[1])))
+                    msg = spid.encode_command(spid.build_command(str_to_f(message[2]), str_to_f(position[1])))
                     print("Moving to Az {message[2]}")
 
         if message[0].lower() == 'exit':
@@ -115,6 +115,13 @@ def send_messages(sock):
             stop_threads = True
             break
     sys.exit()
+
+def str_to_f(x):
+    return round(float(x),1)
+
+def follow_ra_dec(ra,dec):
+    pass
+
 
 def main():
     global stop_threads
