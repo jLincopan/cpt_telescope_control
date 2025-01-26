@@ -4,12 +4,38 @@ import numpy as np
 import threading
 import sys
 import time
-from datetime import datetime
+from astropy import units as u
+from astropy.coordinates import get_sun, AltAz, EarthLocation, SkyCoord
+from astropy.time import Time
+from datetime import datetime, timezone
 
 movement_monitor = False
 stop_threads = False
 position = 0,0
 stop_position = 0,0
+elaz = []
+
+# Observer's location
+latitude = -33.39571095  # Degrees
+longitude = -70.53684399  # Degrees
+elevation = 868  # Meters above sea level
+
+# Local time offset (UTC)
+delta_to_local = -3 * u.h
+
+# Time range: one full day
+utc_time = datetime.now(timezone.utc)
+start_time = Time(utc_time, scale="utc")
+time_list = np.linspace(0, 3, 180) * u.h  # 60 points over 1 hour
+obstime1 = start_time + time_list
+
+#Calan position
+calan_obs = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation * u.m)
+alt_az_frame = AltAz(location=calan_obs, obstime=obstime1)
+#vela_coords = SkyCoord.
+sun_coords = get_sun(obstime1)
+sun_altaz = sun_coords.transform_to(alt_az_frame).to_string()
+obstime1 = obstime1+delta_to_local
 
 # Function to handle receiving messages from the server
 def receive_messages(sock):
@@ -28,7 +54,7 @@ def receive_messages(sock):
                 print(f"[{datetime.now().strftime("%H:%M:%S")}] Current position -> EL: {position[1]} AZ: {position[0]}")
 
             else:
-                print("Connection closed by the server.")
+                print(f"[{datetime.now().strftime("%H:%M:%S")}] Connection closed by the server.")
                 stop_threads = True
         
         except socket.timeout:
@@ -50,6 +76,7 @@ def send_messages(sock):
     global position
     global stop_position
     global movement_monitor
+    global elaz
 
     while not stop_threads:
         message = input("").split(" ")
@@ -61,50 +88,13 @@ def send_messages(sock):
 
         if message[0] == "stop":
             msg = spid.encode_command(spid.stop_str)
-            print(f"[{datetime.now().strftime("%H:%M:%S")}] Stoping Telescope Movement")
-
-        if message[0] == "status":
-            msg = spid.encode_command(spid.status_str)
-            print(f"[{datetime.now().strftime("%H:%M:%S")}] Actual Position: ")
-
-        if message[0] == "park":
-            msg = spid.encode_command(spid.build_command(0,90))
-            print(f"[{datetime.now().strftime("%H:%M:%S")}] Moving to park position")
-
-        if message[0] == "service":
-            msg = spid.encode_command(spid.build_command(0,0))
-            print(f"[{datetime.now().strftime("%H:%M:%S")}] Moving to service position")
+            print("Stoping Telescope Movement")
 
         if message[0] == "restart":
             msg = spid.encode_command(spid.restart_str)
 
-        if message[0] == "move":
-            if len(message) < 2:
-                print("The command has missing arguments: move [move type] [position] ... ")
-            elif message[1] == "elaz":
-                if len(message) < 4:
-                    print("Elevation and Azimuth movement needs the 2 position arguments")
-                else:
-                    msg = spid.encode_command(spid.build_command(str_to_f(message[3]),str_to_f(message[2])))
-                    stop_pos = message[2], message[3]
-                    print(f"[{datetime.now().strftime("%H:%M:%S")}] Moving to El - Az {message[2]} - {message[3]}")
-                    movement_monitor = True
-
-            elif message[1] == "el":
-                if len(message) < 3:
-                    print("Elevation movement missing argument")
-                else:
-                    msg = spid.encode_command(spid.build_command(str_to_f(position[0]), str_to_f(message[2])))
-                    print(f"[{datetime.now().strftime("%H:%M:%S")}] Moving to El {message[2]}")
-            elif message[1] == "az":
-                if len(message) < 3:
-                    print("Azimuth movement missing argument")
-                else:
-                    msg = spid.encode_command(spid.build_command(str_to_f(message[2]), str_to_f(position[1])))
-                    print(f"[{datetime.now().strftime("%H:%M:%S")}] Moving to Az {message[2]}")
-
         if message[0].lower() == 'exit':
-            print(f"[{datetime.now().strftime("%H:%M:%S")}] Closing connection...")
+            print("Closing connection...")
             stop_threads = True
             sock.close()
             break
@@ -123,6 +113,19 @@ def str_to_f(x):
 def follow_ra_dec(ra,dec):
     pass
 
+def track_sun(sock):
+    for a in sun_altaz:
+        alt_az = a.split(" ")
+        az = float(alt_az[0])
+        el = float(alt_az[1])
+        msg = spid.encode_command(spid.build_command(str_to_f(az),str_to_f(el)))
+        print(f"[{datetime.now().strftime("%H:%M:%S")}] Moving to El - Az {el} - {az}")
+        if(el > 70 or az > 310):
+            pass
+        else:
+            sock.sendall(msg)
+            
+        time.sleep(60)
 
 def main():
     global stop_threads
@@ -131,9 +134,10 @@ def main():
 
     # Define server address and port
     host = "10.17.89.223"  # or '127.0.0.1' or server IP address
-    port = 23        # Ensure this port matches the server's port
     #host = "llaima.das.uchile.cl"
+    port = 23 # Ensure this port matches the server's port
     #port = 2023
+
     # Create a socket object
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -158,6 +162,9 @@ def main():
     receive_thread = threading.Thread(target=receive_messages, args=(sock,))
     receive_thread.start()
 
+    tracking_thread = threading.Thread(target=track_sun, daemon=True, args=(sock,))
+    tracking_thread.start()
+
     # Start the sending thread (this is the main thread)
     send_messages(sock)
 
@@ -168,4 +175,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

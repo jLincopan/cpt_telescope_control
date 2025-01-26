@@ -5,7 +5,9 @@ from astropy.time import Time
 import spid
 import socket
 from astropy import units as u
+from datetime import datetime
 
+#1.8 el, 1.6 az
 # Define your telescope's location
 latitude = -33.395720  # Replace with your latitude in degrees
 longitude = -70.536856  # Replace with your longitude in degrees
@@ -15,14 +17,15 @@ elevation = 868  # Replace with your elevation in meters
 ALT_MIN = 20  # Minimum Altitude in degrees (avoid negative or below horizon)
 ALT_MAX = 150  # Maximum Altitude in degrees
 AZ_MIN = 0   # Minimum Azimuth in degrees
-AZ_MAX = 261 # Maximum Azimuth in degrees
+AZ_MAX = 360 # Maximum Azimuth in degrees
 
 # Global variables for tracking and target
 tracking = False
 current_target = None
 stop_threads = False
 
-def send_angle(alt, az, host='10.17.89.223', port = 23):
+host='10.17.89.223'
+def send_angle(alt, az, host=host, port = 23):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         client_socket.connect((host, port))
         message = spid.encode_command(spid.build_command(round(float(az),1), round(float(alt))))
@@ -30,18 +33,14 @@ def send_angle(alt, az, host='10.17.89.223', port = 23):
 
 
 def get_altz_coords(ra, dec):
-    radec = SkyCoord(ra=ra*u.hour, dec=dec*u.deg, frame='icrs')
+    radec = SkyCoord(ra=ra*u.deg, dec=dec*u.deg, frame='icrs')
     # Calan GEOGRAPHIC_COORD
-    calan_obs = EarthLocation(lat=-33.3961*u.deg, lon=-70.537*u.deg, height=867*u.m)
+    calan_obs = EarthLocation(lat=latitude*u.deg, lon=longitude*u.deg, height=elevation*u.m)
     now = Time.now()
     altaz_frame = AltAz(obstime=now,location=calan_obs)
     altaz = radec.transform_to(altaz_frame)
     alt = altaz.alt.deg
     az = altaz.az.deg
-
-    if az>200:
-        az = 360 -az
-        alt = 180 -alt
     return alt, az
 
 
@@ -88,7 +87,7 @@ def main():
         if command == "follow":
             if current_target:
                 tracking = True
-                print(f"Started following {current_target['name']}...")
+                print(f"[{datetime.now().strftime("%H:%M:%S")}] Started following {current_target['name']}...")
             else:
                 print("No target selected. Use 'change' to select a target.")
 
