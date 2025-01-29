@@ -108,7 +108,6 @@ def send_messages(sock):
             stop_threads = True
             sock.close()
             break
-
         try:
             sock.sendall(msg)
         except Exception as e:

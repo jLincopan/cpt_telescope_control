@@ -3,15 +3,10 @@ import threading
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord
 from astropy.time import Time
 import spid
+import common
 import socket
 from astropy import units as u
 from datetime import datetime
-
-#1.8 el, 1.6 az
-# Define your telescope's location
-latitude = -33.395720  # Replace with your latitude in degrees
-longitude = -70.536856  # Replace with your longitude in degrees
-elevation = 868  # Replace with your elevation in meters
 
 # Telescope limits (adjust based on your telescope's safety and design)
 ALT_MIN = 20  # Minimum Altitude in degrees (avoid negative or below horizon)
@@ -24,8 +19,7 @@ tracking = False
 current_target = None
 stop_threads = False
 
-host='10.17.89.223'
-def send_angle(alt, az, host=host, port = 23):
+def send_angle(alt, az, host=common.controller_ip, port = 23):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         client_socket.connect((host, port))
         message = spid.encode_command(spid.build_command(round(float(az),1), round(float(alt))))
@@ -35,9 +29,8 @@ def send_angle(alt, az, host=host, port = 23):
 def get_altz_coords(ra, dec):
     radec = SkyCoord(ra=ra*u.deg, dec=dec*u.deg, frame='icrs')
     # Calan GEOGRAPHIC_COORD
-    calan_obs = EarthLocation(lat=latitude*u.deg, lon=longitude*u.deg, height=elevation*u.m)
-    now = Time.now()
-    altaz_frame = AltAz(obstime=now,location=calan_obs)
+    calan_obs = EarthLocation(lat=common.latitude*u.deg, lon=common.longitude*u.deg, height=common.elevation*u.m)
+    altaz_frame = AltAz(obstime=Time.now(),location=calan_obs)
     altaz = radec.transform_to(altaz_frame)
     alt = altaz.alt.deg
     az = altaz.az.deg
@@ -107,7 +100,6 @@ def main():
             print("Exiting the program. Goodbye!")
             stop_threads = True
             tracking_thread.join()
-            socket_thread.join()
             break
 
         else:
