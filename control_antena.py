@@ -1,9 +1,9 @@
-from SpidController_connection import SpidController_serial
+from SpidController_connection import SpidController_connection
 from time import sleep
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
-from astropy.coordinates import EarthLocation, AltAz, SkyCoord
+from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
 from astropy.time import Time
 from astropy import units
 import threading
@@ -12,14 +12,34 @@ import antenna_config
 tracking_thread = None
 is_tracking = False
 config = antenna_config.read_antenna_config("antenna_config.json")
-antena_control = SpidController_serial(baudrate=config.controller_connection.serial_bauds, port=config.controller_connection.serial_device)
+antena_control = SpidController_connection(baudrate=config.controller_connection.serial_bauds, port=config.controller_connection.serial_device, eth_host=None, eth_port=None)
 
 print(config)
+
+def track_sun():
+    # Define your telescope's location
+    latitude = antenna_config.AntennaPosition.latitude
+    longitude = antenna_config.AntennaPosition.longitude
+    #Altura sobre el nivel del mar
+    elevation = antenna_config.AntennaPosition.amsl
+    antenna_location = EarthLocation(lat=latitude*units.deg, lon=longitude*units.deg, height=elevation*units.m)
+    
+    while is_tracking:
+        now = Time.now()
+        altaz_frame = AltAz(obstime=now, location=antenna_location)
+        sun = get_body("sun", now, antenna_location)
+        sun_altaz = sun.transform_to(altaz_frame)
+        az = sun_altaz.az.deg
+        el = sun_altaz.alt.deg
+        print("f{'tracking'} {az} {el}")
+        antena_control.set_position(az, el)
+        sleep(1)
 
 def track_object(ra, dec):
     # Define your telescope's location
     latitude = antenna_config.AntennaPosition.latitude
     longitude = antenna_config.AntennaPosition.longitude
+    #Altura sobre el nivel del mar
     elevation = antenna_config.AntennaPosition.amsl
 
     # Telescope limits (adjust based on your telescope's safety and design)
@@ -75,7 +95,8 @@ def main():
                 antena_control.set_position(az, el)
             elif command[0] == "track":
                 if command[1] == "sun":
-                    pass
+                    tracking_thread = threading.Thread(target=track_sun, daemon=True)
+                    tracking_thread.start()
                 else:
                     ra = command[1]
                     dec = command[2]

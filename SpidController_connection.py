@@ -7,7 +7,7 @@ from time import sleep
 from SpidProtocol_rot2prog import Spid_rot2prog
 from datetime import datetime
 
-class SpidController_serial:
+class SpidController_connection:
     def __init__(self, serial_port, serial_baudrate, eth_port, eth_host):
         self.controller_connection = None
 
