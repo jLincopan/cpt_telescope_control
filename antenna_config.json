@@ -1,0 +1,22 @@
+{
+    "antenna_position":
+    {
+        "latitude":  -38.7399,
+        "longitude": -72.5901,
+        "amsl": 360
+    },
+    "antenna_limits":
+    {
+        "max_azimuth" : 360,
+        "min_azimuth": 0,
+        "max_elevation": 180,
+        "min_elevation": 0
+    },
+    "controller_connection":
+    {
+        "serial_device": "/dev/ttyUSB0",
+        "serial_bauds": "19200",
+        "socket_host": "192.168.0.1",
+        "socket_port": 5433
+    }
+}
