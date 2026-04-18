@@ -99,18 +99,26 @@ class SpidController_connection:
     def send_status(self):
         self.write_queue.put(self.protocolo.status_str)
 
-    def set_position(self, az, el):
+    def set_position(self, az, el, calibration_active):
         #movement limits
         az = float(round(az, 1))
         el = float(round(el, 1))
         if az < self.min_az or az > self.max_az:
-            print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (azimuth fuera de límites)'}")
-
+            if calibration_active:
+                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (azimuth fuera de límites)'}\r\n")
+            else:
+                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (azimuth fuera de límites)'}")
         if el < self.min_el or el > self.max_el:
             if el < 0:
-                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (objeto bajo el horizonte)'}")
+                if calibration_active:
+                    print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (objeto bajo el horizonte)'}\r\n")
+                else:
+                    print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (objeto bajo el horizonte)'}")
             else:
-                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (elevación fuera de límites)'}")
+                if calibration_active:
+                    print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (elevación fuera de límites)'}\r\n")
+                else:
+                    print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (elevación fuera de límites)'}")
             return
         print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[MOVIENDO] -> '} {az, el}")
         #self.write_queue.put(self.protocolo.build_command(az, el))

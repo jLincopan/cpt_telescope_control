@@ -1,5 +1,6 @@
 import argparse
 from SpidController_connection import SpidController_connection
+from antenna_pointing_calibration import antenna_pointing_calibration
 from AntennaTracking import AntennaTracking
 from time import sleep
 from prompt_toolkit import PromptSession
@@ -21,6 +22,8 @@ def help():
     print(" ej: track sun -> Inicia el seguimiento del sol")
     print("stop")
     print(" Detiene un movimiendo o seguimiento en curso")
+    print("calibrate")
+    print(" Inicia el modo de calibración (usando la sombra del sol en el feed como referencia)")
     print("help")
     print(" Muestra este texto")
     print("")
@@ -45,7 +48,7 @@ def main():
     elevation = config.position.amsl
     antenna_location = EarthLocation(lat=latitude*units.deg, lon=longitude*units.deg, height=elevation*units.m)
     antenna_tracking = AntennaTracking(antenna_control)
-
+    is_calibration_Active = False
     session = PromptSession()
     help()
     with patch_stdout():
@@ -55,7 +58,7 @@ def main():
             if command[0] == "move":
                 az = float(command[1])
                 el = float(command[2])
-                antena_control.set_position(az, el)
+                antena_control.set_position(az, el, False)
             elif command[0] == "track":
                 if len(command) == 2:
                     #track object
@@ -75,9 +78,14 @@ def main():
                     tracking_thread.start()
 
             elif command[0] == "stop":
-                is_tracking = False
+                antenna_tracking.is_tracking = False
                 antena_control.stop()
 
+            elif command[0] == "calibrate":
+                antenna_tracking.is_tracking = True
+                tracking_thread = threading.Thread(target=antenna_tracking.pointing_calibration, args=(antenna_location,), daemon=True)
+                tracking_thread.start()
+                antenna_pointing_calibration(antenna_tracking)
             elif command[0] == "help":
                 help()
             #print(command)
