@@ -3,23 +3,31 @@ import threading
 import queue
 import socket
 import traceback
+import antenna_config
 from time import sleep
 from SpidProtocol_rot2prog import Spid_rot2prog
 from datetime import datetime
 
 class SpidController_connection:
-    def __init__(self, serial_port, serial_baudrate, eth_port, eth_host):
+    def __init__(self, connection_type: str):
+        config = antenna_config.read_antenna_config("antenna_config.json")
         self.controller_connection = None
 
-        if serial_port is not None:
-            self.controller_connection = serial.Serial(serial_port, baudrate=serial_baudrate, timeout=2)
-            print(f"{'Abierto puerto serial'} {serial_port}, {serial_baudrate} {'bauds'}")
-        elif eth_host is not None:
+        if connection_type == "serial":
+            self.controller_connection = serial.Serial(port=config.controller_connection.serial_device, baudrate=config.controller_connection.serial_bauds, timeout=2)
+            print(f"{'Abierto puerto serial'} {config.controller_connection.serial_device}, {config.controller_connection.serial_bauds} {'bauds'}")
+        elif connection_type == "tcp":
             self.controller_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.controller_connection.connect()
+            self.controller_connection.connect(config.controller_connection.socket_host, config.controller_connection.socket_port)
             self.controller_connection.settimeout(1)
-            print(f"{'Conectado a'} {eth_host}:{eth_port}")
-            
+            print(f"{'Conectado a'} {config.controller_connection.socket_host}:{config.controller_connection.socket_port}")
+        
+        self.max_az = int(config.limits.max_azimuth)
+        self.max_el = int(config.limits.max_elevation)
+
+        self.min_az = int(config.limits.min_azimuth)
+        self.min_el = int(config.limits.min_elevation)
+
         self.response_queue = queue.Queue()
         self.write_queue = queue.Queue()
         self.protocolo = Spid_rot2prog()
@@ -40,7 +48,7 @@ class SpidController_connection:
             try:
                 frame = self.close.recv(1024)
                 az, el = self.protocolo.decode_command(frame)
-                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[Respuesta]'} {'az: ' + str(az)}, {'el: ' + str(el)}")
+                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[STATUS]'} {'az: ' + str(az)}, {'el: ' + str(el)}")
             except socket.timeout:
                 print("Error: socket timeout")
                 traceback.print_exc()
@@ -62,29 +70,29 @@ class SpidController_connection:
                 except Exception as e:
                     print("Error al enviar datos")
                     traceback.print_exc()
-                    self._stop.is_set() = True
+                    self._stop.is_set = True
             except queue.Empty:
                     sleep(0.1)
 
     def serial_reader(self):
         while not self._stop.is_set():
             # Block until we get a full frame
-            header = self.serial_device.read(1)
+            header = self.controller_connection.read(1)
             if not header or header[0] != 0x57:
                 continue  # resync: discard until we see START
-            rest = self.serial_device.read(11)
+            rest = self.controller_connection.read(11)
             #print(rest)
             if len(rest) == 11 and rest[10] == 0x20:
                 frame = header + rest
                 az, el = self.protocolo.decode_command(frame)
-                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[Respuesta]'} {'az: ' + str(az)}, {'el: ' + str(el)}")
+                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[STATUS]'} {'az: ' + str(az)}, {'el: ' + str(el)}")
                 #self.response_queue.put(frame)
 
     def serial_writer(self):
         while not self._stop.is_set():
             try:
                 msg = self.write_queue.get()
-                self.serial_device.write(self.protocolo.encode_command(msg))
+                self.controller_connection.write(self.protocolo.encode_command(msg))
             except queue.Empty:
                 sleep(0.1)
 
@@ -92,7 +100,19 @@ class SpidController_connection:
         self.write_queue.put(self.protocolo.status_str)
 
     def set_position(self, az, el):
-        print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[Moviendo] ----> '} {az, el}")
+        #movement limits
+        az = float(round(az, 1))
+        el = float(round(el, 1))
+        if az < self.min_az or az > self.max_az:
+            print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (azimuth fuera de límites)'}")
+
+        if el < self.min_el or el > self.max_el:
+            if el < 0:
+                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (objeto bajo el horizonte)'}")
+            else:
+                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (elevación fuera de límites)'}")
+            return
+        print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[MOVIENDO] -> '} {az, el}")
         #self.write_queue.put(self.protocolo.build_command(az, el))
     
     def stop(self):
@@ -101,9 +121,9 @@ class SpidController_connection:
 
     def close(self):
         self._stop.set()
-        self.serial_device.close()
+        self.controller_connection.close()
     
     def status_thread(self):
         while not self._stop.is_set():
             self.send_status()
-            sleep(1)
+            sleep(5)

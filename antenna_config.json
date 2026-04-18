@@ -16,7 +16,7 @@
     {
         "serial_device": "/dev/ttyUSB0",
         "serial_bauds": "19200",
-        "socket_host": "192.168.0.1",
+        "socket_host": "192.168.100.1",
         "socket_port": 5433
     }
 }
