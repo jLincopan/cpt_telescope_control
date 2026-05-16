@@ -53,12 +53,10 @@ def antenna_pointing_calibration(antenna_tracking: AntennaTracking):
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
 
-    # Escribir directamente a stdout con \r\n para modo raw
     def raw_print(msg):
-        sys.stdout.write(msg + '\r\n')
-        sys.stdout.flush()
+        print('\r' + msg)
 
-    raw_print("Modo calibración activo. Flechas = ajustar offset, 'q' = salir")
+    raw_print("Modo calibración activo, 'q' = salir. Ajustar offset con las flechas en el teclado (arriba,abajo,izquierda,derecha)")
     raw_print(f"Offset actual: az={antenna_tracking.azimuth_offset:.2f}° el={antenna_tracking.elevation_offset:.2f}°")
 
     try:

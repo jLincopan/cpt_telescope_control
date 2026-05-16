@@ -49,6 +49,6 @@ class AntennaTracking:
 
             new_azimuth = float(round(az + self.azimuth_offset, 1))
             new_elevation = float(round(el + self.elevation_offset, 1))
-            print(f"Offset: ({self.azimuth_offset},{self.elevation_offset}) Posición antena: ({new_azimuth},{new_elevation}) Posición sol: ({az}, {el})\r\n")
+            print('\r' + f"Offset: ({self.azimuth_offset},{self.elevation_offset}) Posición antena: ({new_azimuth},{new_elevation}) Posición sol: ({az}, {el})\r\n")
             self.antenna_control.set_position(new_azimuth, new_elevation, True)
             sleep(1)
