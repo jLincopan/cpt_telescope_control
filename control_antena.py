@@ -1,5 +1,5 @@
 import argparse
-from SpidController_connection import SpidController_connection
+from spid_controller import SpidController
 from antenna_pointing_calibration import antenna_pointing_calibration
 from AntennaTracking import AntennaTracking
 from time import sleep
@@ -38,9 +38,9 @@ def main():
     args = parser.parse_args()
     antenna_control = None
     if args.serial:
-        antenna_control = SpidController_connection(connection_type = "serial")
+        antenna_control = SpidController(connection_type = "serial")
     elif args.tcp:
-        antenna_control = SpidController_connection(connection_type = "tcp")
+        antenna_control = SpidController(connection_type = "tcp")
     # Define your telescope's location
     latitude = config.position.latitude
     longitude = config.position.longitude
@@ -84,6 +84,7 @@ def main():
                 antenna_tracking.is_tracking = True
                 tracking_thread = threading.Thread(target=antenna_tracking.pointing_calibration, args=(antenna_location,), daemon=True)
                 tracking_thread.start()
+                #Esta linea bloquea la ejecucion aqui
                 antenna_pointing_calibration(antenna_tracking)
                 antenna_tracking.is_tracking = False
             elif command[0] == "help":

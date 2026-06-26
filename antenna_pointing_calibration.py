@@ -11,7 +11,7 @@ try:
 except ImportError:
     UNIX = False
 
-def read_key_unix(fd, old_settings):
+def read_key_unix(fd):
     """
     Lee una tecla en raw mode. 
     IMPORTANTE: el caller ya configuró raw mode, no lo hacemos aquí.
@@ -57,12 +57,12 @@ def antenna_pointing_calibration(antenna_tracking: AntennaTracking):
         print('\r' + msg)
 
     raw_print("Modo calibración activo, 'q' = salir. Ajustar offset con las flechas en el teclado (arriba,abajo,izquierda,derecha)")
-    raw_print(f"Offset actual: az={antenna_tracking.azimuth_offset:.2f}° el={antenna_tracking.elevation_offset:.2f}°")
+    raw_print(f"Offset: az={antenna_tracking.azimuth_offset:.2f}° el={antenna_tracking.elevation_offset:.2f}°")
 
     try:
         tty.setraw(fd)
         while antenna_tracking.is_tracking:
-            key = read_key_unix(fd, old_settings)
+            key = read_key_unix(fd)
             if key == 'q':
                 raw_print("Saliendo de calibración...")
                 antenna_tracking.is_tracking = False

@@ -5,10 +5,10 @@ import socket
 import traceback
 import antenna_config
 from time import sleep
-from SpidProtocol_rot2prog import Spid_rot2prog
+from spid_rot2prog import Spid_rot2prog
 from datetime import datetime
 
-class SpidController_connection:
+class SpidController:
     def __init__(self, connection_type: str):
         config = antenna_config.read_antenna_config("antenna_config.json")
         self.controller_connection = None
@@ -121,7 +121,7 @@ class SpidController_connection:
                     print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[IGNORADO] '} {az, el} {' (elevación fuera de límites)'}")
             return
         print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[MOVIENDO] -> '} {az, el}")
-        #self.write_queue.put(self.protocolo.build_command(az, el))
+        self.write_queue.put(self.protocolo.build_command(az, el))
     
     def stop(self):
         print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-3]} {'[Deteniendo]'}")

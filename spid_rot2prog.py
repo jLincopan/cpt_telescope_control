@@ -1,7 +1,7 @@
 # Library to process all bytes formating for the SPID MD-1 Rot2Prog protocol
 class Spid_rot2prog:
     def __init__(self):
-        self.deg_res = 6 # 01 - 1, 02 - 0.5, 04 - 0.25, byte - degrees per pulse
+        self.deg_res = 4 # 01 - 1, 02 - 0.5, 04 - 0.25, byte - degrees per pulse
         self.start_byte = 0x57
         self.stop_byte = 0x20
         self.stop_str = "57000000000000000000000F20"
