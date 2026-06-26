@@ -1,2 +1,3 @@
 astropy
 prompt_toolkit
+serial

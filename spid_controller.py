@@ -18,7 +18,7 @@ class SpidController:
             print(f"{'Abierto puerto serial'} {config.controller_connection.serial_device}, {config.controller_connection.serial_bauds} {'bauds'}")
         elif connection_type == "tcp":
             self.controller_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.controller_connection.connect(config.controller_connection.socket_host, config.controller_connection.socket_port)
+            self.controller_connection.connect((config.controller_connection.socket_host, config.controller_connection.socket_port))
             self.controller_connection.settimeout(1)
             print(f"{'Conectado a'} {config.controller_connection.socket_host}:{config.controller_connection.socket_port}")
         
